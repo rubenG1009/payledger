@@ -25,7 +25,7 @@ describe.skipIf(!url)("PgStore", () => {
   beforeAll(async () => {
     store = PgStore.fromUrl(url!);
     await store.init();
-    await store["pool"].query("TRUNCATE transfers, payment_references");
+    await store["pool"].query("TRUNCATE orders, transfers, payment_references");
     await store.addReference(REFERENCE, "test");
   });
 
@@ -38,6 +38,18 @@ describe.skipIf(!url)("PgStore", () => {
 
     expect(await store.getCursor(REFERENCE)).toEqual({ signature: "b", slot: 101 });
     expect((await store.listTransfers(REFERENCE)).map((t) => t.amount)).toEqual([5n, big]);
+  });
+
+  it("creates orders with their reference and rejects duplicate ids", async () => {
+    const ref = "11111111111111111111111111111112";
+    await store.createOrder({ orderId: "o-1", reference: ref, expected: 1_500_000n, label: "Coffee" });
+    await expect(
+      store.createOrder({ orderId: "o-1", reference: "So11111111111111111111111111111111111111112", expected: 1n, label: null }),
+    ).rejects.toThrow(/already exists/);
+
+    expect(await store.listOrders("o-1")).toEqual([{ orderId: "o-1", reference: ref, expected: 1_500_000n, label: "Coffee" }]);
+    expect(await store.listReferences()).toContain(ref);
+    expect(await store.listReferences()).not.toContain("So11111111111111111111111111111111111111112");
   });
 
   it("rolls back the batch when a row is rejected", async () => {

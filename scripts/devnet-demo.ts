@@ -5,6 +5,7 @@ import {
   Connection,
   Keypair,
   LAMPORTS_PER_SOL,
+  PublicKey,
   Transaction,
   clusterApiUrl,
   sendAndConfirmTransaction,
@@ -29,6 +30,11 @@ function loadOrCreate(name: string): Keypair {
 }
 
 async function main() {
+  // Usage: devnet-demo [reference] [amount in base units]; defaults to a fresh reference and 1.5 tokens.
+  const [refArg, amountArg] = process.argv.slice(2);
+  const reference = refArg ? new PublicKey(refArg) : Keypair.generate().publicKey;
+  const amount = BigInt(amountArg ?? 1_500_000);
+
   const rpcUrl = process.env.RPC_URL ?? clusterApiUrl("devnet");
   if (!rpcUrl.includes("devnet")) throw new Error("refusing to run outside devnet");
   const connection = new Connection(rpcUrl, "confirmed");
@@ -43,17 +49,15 @@ async function main() {
 
   const mintPath = `${DIR}/mint.txt`;
   const mint = existsSync(mintPath)
-    ? new (await import("@solana/web3.js")).PublicKey(readFileSync(mintPath, "utf8").trim())
+    ? new PublicKey(readFileSync(mintPath, "utf8").trim())
     : await createMint(connection, payer, payer.publicKey, null, DECIMALS);
   writeFileSync(mintPath, mint.toBase58());
 
   const from = await getOrCreateAssociatedTokenAccount(connection, payer, mint, payer.publicKey);
   const to = await getOrCreateAssociatedTokenAccount(connection, payer, mint, merchant.publicKey);
-  await mintTo(connection, payer, mint, from.address, payer, 100n * 10n ** BigInt(DECIMALS));
+  if (from.amount < amount) await mintTo(connection, payer, mint, from.address, payer, 100n * 10n ** BigInt(DECIMALS));
 
   // Solana Pay: the reference is appended as a read-only, non-signer key of the transfer instruction.
-  const reference = Keypair.generate().publicKey;
-  const amount = 1_500_000n; // 1.5 tokens
   const ix = createTransferCheckedInstruction(from.address, mint, to.address, payer.publicKey, amount, DECIMALS);
   ix.keys.push({ pubkey: reference, isSigner: false, isWritable: false });
   const signature = await sendAndConfirmTransaction(connection, new Transaction().add(ix), [payer]);

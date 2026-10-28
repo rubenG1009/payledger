@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { solanaPayUrl } from "../src/cli.ts";
+import { solanaPayUrl } from "../src/pay-url.ts";
 import { loadConfig } from "../src/config.ts";
 import { MERCHANT, REFERENCE, USDC } from "./fixtures/tx.ts";
 

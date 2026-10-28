@@ -1,7 +1,15 @@
 import { readFile } from "node:fs/promises";
 import pg from "pg";
+import type { Order } from "./reconcile.ts";
 import type { Store } from "./store.ts";
 import type { Cursor, PaymentTransfer } from "./types.ts";
+
+export class OrderExistsError extends Error {
+  constructor(orderId: string) {
+    super(`order ${orderId} already exists`);
+    this.name = "OrderExistsError";
+  }
+}
 
 interface TransferRow {
   signature: string;
@@ -94,6 +102,39 @@ export class PgStore implements Store {
       destinationOwner: r.destination_owner,
       amount: BigInt(r.amount),
     }));
+  }
+
+  // Creates the order and its reference together; a duplicate order id raises OrderExistsError.
+  async createOrder(order: Order): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("INSERT INTO payment_references (reference, label) VALUES ($1, $2)", [
+        order.reference,
+        order.label,
+      ]);
+      await client.query("INSERT INTO orders (order_id, reference, expected, label) VALUES ($1, $2, $3, $4)", [
+        order.orderId,
+        order.reference,
+        order.expected.toString(),
+        order.label,
+      ]);
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      if ((error as { code?: string }).code === "23505") throw new OrderExistsError(order.orderId);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async listOrders(orderId?: string): Promise<Order[]> {
+    const { rows } = await this.pool.query<{ order_id: string; reference: string; expected: string; label: string | null }>(
+      "SELECT order_id, reference, expected, label FROM orders WHERE $1::text IS NULL OR order_id = $1 ORDER BY created_at",
+      [orderId ?? null],
+    );
+    return rows.map((r) => ({ orderId: r.order_id, reference: r.reference, expected: BigInt(r.expected), label: r.label }));
   }
 
   close(): Promise<void> {

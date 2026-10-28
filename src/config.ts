@@ -8,6 +8,7 @@ export interface Config {
   databaseUrl: string;
   merchant: string;
   mint: string;
+  decimals: number;
   commitment: Finality;
 }
 
@@ -26,7 +27,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new Error("COMMITMENT must be 'finalized' or 'confirmed'");
   }
   if (!env.DATABASE_URL) throw new Error("DATABASE_URL is required");
+  const decimals = Number(env.MINT_DECIMALS ?? 6);
+  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 18) throw new Error("MINT_DECIMALS must be 0-18");
   return {
+    decimals,
     rpcUrl: env.RPC_URL ?? "https://api.devnet.solana.com",
     databaseUrl: env.DATABASE_URL,
     merchant: publicKey("MERCHANT_WALLET", env.MERCHANT_WALLET),

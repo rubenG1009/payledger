@@ -21,3 +21,11 @@ CREATE TABLE IF NOT EXISTS transfers (
 );
 
 CREATE INDEX IF NOT EXISTS transfers_reference_idx ON transfers (reference);
+
+CREATE TABLE IF NOT EXISTS orders (
+  order_id   text PRIMARY KEY CHECK (length(order_id) BETWEEN 1 AND 64),
+  reference  text NOT NULL UNIQUE REFERENCES payment_references (reference),
+  expected   numeric(39, 0) NOT NULL CHECK (expected > 0),
+  label      text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
