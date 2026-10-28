@@ -60,6 +60,14 @@ token and sends one Solana Pay-style payment with a reference key; it needs devn
 SOL from [faucet.solana.com](https://faucet.solana.com) and keeps its keys in
 `.devnet/` (gitignored).
 
+## Verified on devnet
+
+On 2026-10-28 `scripts/devnet-demo.ts` sent a 1.5-token `transferChecked` with a
+reference key ([transaction](https://explorer.solana.com/tx/3PFpoEKbiggJQxyLixvZcQt9HaXDfyJTXMmEh6qrQvo8j75kqMowJJ62Pjn4kGopibu4cpsNezUKbGzHpVPCrE83?cluster=devnet)).
+`sync` stored it as one payment of `1500000` base units to the merchant wallet; a
+second `sync` saw no new signatures and left the table at one row. The token is a
+throwaway devnet mint, not USDC.
+
 ## Limits
 
 - Devnet only so far; not audited.
