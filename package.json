@@ -1,0 +1,32 @@
+{
+  "name": "payledger",
+  "version": "0.1.0",
+  "description": "Open-source Solana Pay reconciliation: index SPL-token payments by reference key and match them to merchant orders.",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "payledger": "./src/cli.ts"
+  },
+  "scripts": {
+    "cli": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "devnet-demo": "tsx scripts/devnet-demo.ts"
+  },
+  "dependencies": {
+    "@solana/web3.js": "1.99.0",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@solana/spl-token": "0.4.15",
+    "@types/node": "24.19.2",
+    "@types/pg": "8.23.1",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
+}
